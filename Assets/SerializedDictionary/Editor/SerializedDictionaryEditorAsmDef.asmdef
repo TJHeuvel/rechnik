@@ -1,0 +1,17 @@
+{
+    "name": "SerializedDictionaryEditorAsmDef",
+    "references": [
+        "GUID:81b9e8f97872e68488b4fe3bea0385e5"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

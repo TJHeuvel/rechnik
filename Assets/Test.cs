@@ -6,18 +6,23 @@ class Test : MonoBehaviour
 
     private enum Colors { Red, Green, Blue }
 
+    public SerializedDictionary<string, int> strIntDic;
+    public SerializedDictionary<string, int[]> strIntArDic;
 
-    //public SerializedDictionary<string, int> strIntDic;
+    public SerializedKeyValuePair<string, int>[] kvp;
+    public (int, int) Tuple;
+
     //public SerializedDictionary<Person, int> persIntDic;
-    [SerializeField] private SerializedDictionary<Colors, int> colorIntDic;
+    //[SerializeField] private SerializedDictionary<Colors, int> colorIntDic;
 
-    //public SerializedDictionary<Person, Person> persPersDic;
+    //public SerializedDictionary<Person, int[]> persIntArrayDict;
+    //[SerializeField] private int[] ar;
 
-    void Start()
-    {
-        Debug.Log(colorIntDic.Count);
-        foreach (var kvp in colorIntDic)
-            Debug.Log($"{kvp.Key} : {kvp.Value}");
+    //void Start()
+    //{
+    //    Debug.Log(colorIntDic.Count);
+    //    foreach (var kvp in colorIntDic)
+    //        Debug.Log($"{kvp.Key} : {kvp.Value}");
 
-    }
+    //}
 }

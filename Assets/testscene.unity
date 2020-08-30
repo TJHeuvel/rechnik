@@ -154,11 +154,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fac7938c01e36da48874e1bdfd31547f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  colorIntDic:
-    serializedKeys: 010000000000000002000000
-    serializedValues: 010000000200000003000000
-    editorAddKey: 0
-    editorAddValue: 123
+  strIntDic:
+    serializedData:
+    - Key: 1223
+      Value: 1
+    - Key: 2
+      Value: 2
+    - Key: hoeba
+      Value: 3
+    hasDuplicateKey: 0
+    editorAddKey: 123gj
+    editorAddValue: 3
+  strIntArDic:
+    serializedData:
+    - Key: Key
+      Value: 0b0000001600000021000000
+    - Key: SomeOtherKey
+      Value: 39300000de000000
+    - Key: asdf1238duvijk
+      Value: 6300000063000000
+    hasDuplicateKey: 0
+    editorAddKey: a
+    editorAddValue: 6300000063000000
+  kvp: []
 --- !u!81 &1788660488
 AudioListener:
   m_ObjectHideFlags: 0

@@ -2,6 +2,7 @@
 using UnityEditorInternal;
 using UnityEngine;
 using System.Linq;
+using System.Text;
 
 [CustomPropertyDrawer(typeof(SerializedDictionary<,>), true)]
 class SerializedDictionaryDrawer : PropertyDrawer
@@ -32,9 +33,7 @@ class SerializedDictionaryDrawer : PropertyDrawer
 
             var targetObject = fieldInfo.GetValue(property.serializedObject.targetObject);
             if (duplicateKeyMode = ReflectionUtils.GetPrivate<bool>(targetObject, nameof(SerializedDictionary<int, int>.hasDuplicateKey)))
-            {
                 duplicateIndices = ReflectionUtils.GetPrivate<(int, int)>(targetObject, nameof(SerializedDictionary<int, int>.duplicateIndices));
-            }
 
             position.y += EditorGUIUtility.singleLineHeight;
 
@@ -57,10 +56,8 @@ class SerializedDictionaryDrawer : PropertyDrawer
 
     private void createListDrawer(SerializedProperty property)
     {
-        SerializedProperty keys = property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.serializedKeys)),
-                                values = property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.serializedValues));
-
-        listDrawer = new ReorderableList(property.serializedObject, keys, true, false, true, true);
+        var serializedDataProp = property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.serializedData));
+        listDrawer = new ReorderableList(property.serializedObject, serializedDataProp, true, false, true, true);
         listDrawer.drawHeaderCallback += (rect) =>
         {
             var keyRect = rect;
@@ -75,10 +72,12 @@ class SerializedDictionaryDrawer : PropertyDrawer
         };
         listDrawer.drawElementCallback += (Rect rect, int index, bool isActive, bool isFocused) =>
         {
-            SerializedProperty key = keys.GetArrayElementAtIndex(index),
-                                val = values.GetArrayElementAtIndex(index);
-            GUIContent keyContent = new GUIContent(key.hasVisibleChildren ? key.displayName : string.Empty, key.tooltip),
-                    valContent = new GUIContent(val.hasVisibleChildren ? val.displayName : string.Empty, val.tooltip);
+            SerializedProperty kvpProp = serializedDataProp.GetArrayElementAtIndex(index),
+                keyProp = kvpProp.FindPropertyRelative(nameof(SerializedKeyValuePair<int, int>.Key)),
+                valProp = kvpProp.FindPropertyRelative(nameof(SerializedKeyValuePair<int, int>.Value));
+
+            GUIContent keyContent = new GUIContent(keyProp.hasVisibleChildren ? keyProp.displayName : string.Empty, keyProp.tooltip),
+                    valContent = new GUIContent(valProp.hasVisibleChildren ? valProp.displayName : string.Empty, valProp.tooltip);
 
             var keyRect = rect;
             keyRect.width = rect.width / 2f - 24f;
@@ -87,12 +86,12 @@ class SerializedDictionaryDrawer : PropertyDrawer
             valueRect.width = rect.width / 2f + 13f;
 
             //They have a foldout, move a bit
-            if (key.hasChildren)
+            if (keyProp.hasChildren)
             {
                 keyRect.x += 14f;
                 keyRect.width -= 14f;
             }
-            if (val.hasChildren)
+            if (valProp.hasChildren)
             {
                 valueRect.x += 14f;
                 valueRect.width -= 14f;
@@ -106,31 +105,30 @@ class SerializedDictionaryDrawer : PropertyDrawer
             if (isDuplicate) GUI.color = Color.yellow;
 
             EditorGUIUtility.labelWidth = keyRect.width / 4f;
-            EditorGUI.PropertyField(keyRect, key, keyContent, true);
+            EditorGUI.PropertyField(keyRect, keyProp, keyContent, true);
 
             GUI.enabled = !duplicateKeyMode;
             GUI.color = Color.white;
 
             EditorGUIUtility.labelWidth = valueRect.width / 4f;
-            EditorGUI.PropertyField(valueRect, val, valContent, true);
+            EditorGUI.PropertyField(valueRect, valProp, valContent, true);
         };
         listDrawer.onAddDropdownCallback += (Rect btn, ReorderableList l) =>
         {
-            PopupWindow.Show(btn, new AddElementDrawer(property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.editorAddKey)),
-                property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.editorAddValue)),
+            SerializedProperty editorAddKeyProp = property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.editorAddKey)),
+                                editorAddValProp = property.FindPropertyRelative(nameof(SerializedDictionary<int, int>.editorAddValue));
+
+            PopupWindow.Show(btn, new AddElementDrawer(
+                editorAddKeyProp, editorAddValProp,
                 fieldInfo.GetValue(property.serializedObject.targetObject)));
-        };
-        listDrawer.onReorderCallbackWithDetails += (ReorderableList list, int oldIndex, int newIndex) =>
-        {
-            //For some reason we only have to move the values, not the keys. 
-            values.MoveArrayElement(oldIndex, newIndex);
         };
         listDrawer.elementHeightCallback += (int index) =>
         {
-            SerializedProperty key = keys.GetArrayElementAtIndex(index),
-                                val = values.GetArrayElementAtIndex(index);
+            SerializedProperty kvpProp = serializedDataProp.GetArrayElementAtIndex(index),
+                keyProp = kvpProp.FindPropertyRelative(nameof(SerializedKeyValuePair<int, int>.Key)),
+                valProp = kvpProp.FindPropertyRelative(nameof(SerializedKeyValuePair<int, int>.Value));
 
-            return Mathf.Max(EditorGUI.GetPropertyHeight(key), EditorGUI.GetPropertyHeight(val)) + EditorGUIUtility.standardVerticalSpacing;
+            return Mathf.Max(EditorGUI.GetPropertyHeight(keyProp), EditorGUI.GetPropertyHeight(valProp)) + EditorGUIUtility.standardVerticalSpacing;
         };
     }
 }
@@ -139,6 +137,8 @@ class AddElementDrawer : PopupWindowContent
 {
     private readonly SerializedProperty keyProp, valProp;
     private object targetDictionary;
+    private readonly Vector2 minWindowSize;
+    
 
     public AddElementDrawer(SerializedProperty keyProp, SerializedProperty valProp, object targetDictionary)
     {
@@ -148,28 +148,26 @@ class AddElementDrawer : PopupWindowContent
 
         keyProp.isExpanded = valProp.isExpanded = true;
 
-        windowSize = new Vector2(300,
+        minWindowSize = new Vector2(350,
             EditorGUI.GetPropertyHeight(keyProp) +
             EditorGUI.GetPropertyHeight(valProp) +
             EditorGUIUtility.singleLineHeight * 2);
     }
-    private readonly Vector2 windowSize;
 
     //todo: better size
-    public override Vector2 GetWindowSize() => windowSize;
+    public override Vector2 GetWindowSize() => Vector2.Max(minWindowSize, new Vector2(minWindowSize.x,
+            EditorGUI.GetPropertyHeight(keyProp) +
+            EditorGUI.GetPropertyHeight(valProp) +
+            EditorGUIUtility.singleLineHeight * 2));
 
     public override void OnGUI(Rect rect)
     {
-        EditorGUIUtility.labelWidth = 60f;
+        EditorGUIUtility.labelWidth = 75f;
         GUI.SetNextControlName("Key");
         EditorGUILayout.PropertyField(keyProp, new GUIContent("Key", keyProp.tooltip), true);
 
         GUI.SetNextControlName("Value");
         EditorGUILayout.PropertyField(valProp, new GUIContent("Value", valProp.tooltip), true);
-
-        ////Ensure we have focus
-        //if (!new[] { "Key", "Value" }.Contains(GUI.GetNameOfFocusedControl()))
-        //    GUI.FocusControl("Key");
 
         //Important, we need to apply the propertyfields to the actual object before reading it out!
         keyProp.serializedObject.ApplyModifiedPropertiesWithoutUndo();
@@ -177,7 +175,7 @@ class AddElementDrawer : PopupWindowContent
         object key = ReflectionUtils.GetPrivate<object>(targetDictionary, nameof(SerializedDictionary<int, int>.editorAddKey)),
             value = ReflectionUtils.GetPrivate<object>(targetDictionary, nameof(SerializedDictionary<int, int>.editorAddValue));
 
-        bool isDuplicateKey = ReflectionUtils.CallPublic<bool>(targetDictionary, nameof(SerializedDictionary<int, int>.ContainsKey), key);
+        bool isDuplicateKey = key != null && ReflectionUtils.CallPublic<bool>(targetDictionary, nameof(SerializedDictionary<int, int>.ContainsKey), key);
 
         EditorGUILayout.Space();
         GUI.enabled = !isDuplicateKey;
@@ -195,9 +193,16 @@ class AddElementDrawer : PopupWindowContent
             editorWindow.Close();
         }
         GUI.enabled = true;
+    
+        if(firstOnGUI)
+        {
+            firstOnGUI = false;
+            GUI.FocusControl("Key");
+        }
     }
 
-    public override void OnOpen() { }
+    private bool firstOnGUI;
+    public override void OnOpen() { firstOnGUI = true; }
     public override void OnClose() { }
 }
 
@@ -207,4 +212,18 @@ internal static class ReflectionUtils
     internal static T CallPublic<T>(object obj, string name, params object[] args) => (T)obj.GetType().GetMethod(name, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).Invoke(obj, args);
     internal static void CallPublic(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).Invoke(obj, args);
 
+    internal static string DumpObjectProps(SerializedProperty prop)
+    {
+        var sb = new StringBuilder();
+        sb.Append($"{prop.name}:\n");
+        prop.Next(true);
+
+        do
+        {
+            for (int i = 0; i < prop.depth; i++)
+                sb.Append('\t');
+            sb.Append($"{prop.name} {prop.isArray} ({prop.type})\n");
+        } while (prop.Next(true));
+        return sb.ToString();
+    }
 }

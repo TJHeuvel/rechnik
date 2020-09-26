@@ -35,6 +35,9 @@ public class SerializedDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISer
 
         if (serializedData == null) return;
 
+#if UNITY_EDITOR
+        findDuplicateKey();
+#endif
 #if !UNITY_EDITOR
         if (hasDuplicateKey)
             Debug.LogWarning($"A serialized dictionary is loading that has duplicate keys configured in the inspector.\nThis is not supported, the duplicate value will be missing in a dictionary of type: '{this}'. Known keys and values:\n{string.Join("\n\t", serializedData)}");
@@ -48,6 +51,18 @@ public class SerializedDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISer
         if (serializedData == null) return;
 
 #if UNITY_EDITOR
+        if (findDuplicateKey())
+            return;
+#endif
+
+        serializedData = new SerializedKeyValuePair<TKey, TValue>[Count];
+        int k = 0;
+        foreach (var kvp in this)
+            serializedData[k++] = kvp;
+    }
+
+    private bool findDuplicateKey()
+    {
         for (int i = 0; i < serializedData.Length; i++)
         {
             for (int j = 0; j < serializedData.Length; j++)
@@ -56,19 +71,12 @@ public class SerializedDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISer
 
                 if (serializedData[i].Key.Equals(serializedData[j].Key))
                 {
-                    hasDuplicateKey = true;
                     duplicateIndices = (i, j);
-                    return;
+                    return hasDuplicateKey = true;
                 }
             }
         }
-        hasDuplicateKey = false;
-#endif
-
-        serializedData = new SerializedKeyValuePair<TKey, TValue>[Count];
-        int k = 0;
-        foreach (var kvp in this)
-            serializedData[k++] = kvp;
+        return hasDuplicateKey = false;
     }
 }
 

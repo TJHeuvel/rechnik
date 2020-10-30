@@ -54,8 +54,6 @@ class SerializedDictionaryDrawer : PropertyDrawer
                 position.height = EditorGUIUtility.singleLineHeight;
                 position.xMax -= 80f;
                 EditorGUI.HelpBox(position, $"There are duplicate keys, please ensure they are unique!", MessageType.Error);
-
-                //return;
             }
         }
     }
@@ -88,10 +86,6 @@ class SerializedDictionaryDrawer : PropertyDrawer
         if (enumerable == null) return null;
 
         var enm = enumerable.GetEnumerator();
-        //while (index-- >= 0)
-        //    enm.MoveNext();
-        //return enm.Current;
-
         for (int i = 0; i <= index; i++)
         {
             if (!enm.MoveNext()) return null;
@@ -223,7 +217,6 @@ class AddElementDrawer : PopupWindowContent
     private readonly SerializedProperty keyProp, valProp;
     private object targetObject;
     private readonly Vector2 minWindowSize;
-
 
     public AddElementDrawer(SerializedProperty keyProp, SerializedProperty valProp, object targetObject)
     {
